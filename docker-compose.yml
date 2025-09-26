@@ -1,18 +1,48 @@
-version: "3.8"
+version: '3.8'
 
 services:
-  backend:
-    build: ./backend
-    container_name: artgallery-backend
-    ports:
-      - "5000:5000"
-    env_file:
-      - ./backend/.env
-
-  frontend:
-    build: ./frontend
-    container_name: artgallery-frontend
-    ports:
-      - "3000:3000"
+  # -------------------- 1. DATABASE SERVICE --------------------
+  db:
+    image: mysql:8.0
+    container_name: online-art-db
     environment:
-      - REACT_APP_API_URL=http://localhost:5000
+      # These credentials match the requirements for your MySQL connection
+      MYSQL_ROOT_PASSWORD: Ganesh@143
+      MYSQL_DATABASE: online-art-gallery  # Matches your schema name
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-proot"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  # -------------------- 2. BACKEND SERVICE (Node.js/Express) --------------------
+  backend:
+    build: 
+      context: ./backend # Use the Dockerfile in the 'backend' folder
+    container_name: online-art-backend
+    depends_on:
+      db:
+        condition: service_healthy # Wait for the DB to be ready
+    environment:
+      # This DB_URI is crucial: it uses the service name 'db' instead of 'localhost'
+      DB_URI: mysql://root:root@db:3306/online-art-gallery
+      PORT: 8081
+    ports:
+      - "8081:8081" # Backend reachable at http://localhost:8081
+    restart: unless-stopped
+
+  # -------------------- 3. FRONTEND SERVICE (React/Nginx) --------------------
+  frontend:
+    build: 
+      context: ./frontend # Use the Dockerfile in the 'frontend' folder
+    container_name: online-art-frontend
+    depends_on:
+      - backend
+    ports:
+      - "3000:80" # Frontend reachable at http://localhost:3000
+    restart: unless-stopped
+
+volumes:
+  mysql_data: {} # Volume for persistent database data
