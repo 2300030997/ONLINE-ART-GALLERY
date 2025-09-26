@@ -1,15 +1,10 @@
-const mongoose = require("mongoose");
+const mysql = require('mysql2');
 
-const connectDatabase = () => {
-  mongoose
-    .connect(process.env.DB_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-      useCreateIndex: true,
-    })
-    .then((data) => {
-      console.log(`Mongodb connected with server: ${data.connection.host}`);
-    });
-};
+const pool = mysql.createPool({
+  host: 'localhost',
+  user: 'root',
+  password: 'Ganesh@143',
+  database: 'online-art-gallery'
+});
 
-module.exports = connectDatabase;
+module.exports = pool.promise();
